@@ -113,20 +113,42 @@ def read_sample(f):
         x:          numpy数组 [175, 1]  节点特征：是否湿区
         y:          float               标签：总成本
     """
+    # # 读取 edge_index [2, 211]，int32 类型
+    # edge_index_bytes = f.read(config.EDGE_INDEX_BYTES)
+    #
+    # # 尝试不同的数据类型和字节序
+    # edge_index = np.frombuffer(
+    #     edge_index_bytes,
+    #     dtype='<i4'  # 显式指定小端 int32
+    # ).reshape(2, config.NUM_BRANCHES)
+    #
+    # # 检查数据是否合理
+    # if edge_index.max() >= config.NUM_NODES or edge_index.min() < 0:
+    #     print(f'警告：edge_index 异常 [{edge_index.min()}, {edge_index.max()}]')
+    #     print(f'原始字节 (前 20): {edge_index_bytes[:20].hex()}')
+    #
+    #     # 尝试按 float32 读取看看
+    #     edge_index_as_float = np.frombuffer(
+    #         edge_index_bytes,
+    #         dtype='<f4'
+    #     ).reshape(2, config.NUM_BRANCHES)
+    #     print(f'如果按 float32 解析：[{edge_index_as_float.min():.4f}, {edge_index_as_float.max():.4f}]')
 
     # 读取 edge_index [2, 211]，int32类型
     # 2行(起点/终点) × 211条分支 × 4字节 = 1688字节
     edge_index = np.frombuffer(
         f.read(config.EDGE_INDEX_BYTES),   # 读取1688字节
-        dtype='int32'               # 按int32解析，节点索引是整数
+        dtype='>i4'               # 按int32解析，节点索引是整数
     ).reshape(2,  config.NUM_BRANCHES)      # 重塑为 [2, 211]
+    edge_index = edge_index.astype('<i4')
 
     # 读取 edge_attr [211, 4]，float32类型
     # 211条分支 × 4个特征 × 4字节 = 3376字节
     edge_attr = np.frombuffer(
         f.read(config.EDGE_ATTR_BYTES),    # 读取3376字节
-        dtype='float32'             # 按float32解析
+        dtype='>f4'             # 按float32解析
     ).reshape(config.NUM_BRANCHES,config.EDGE_FEAT_DIM)  # 重塑为 [211, 4]
+    edge_attr = edge_attr.astype('<f4')
 
 
 
@@ -134,15 +156,16 @@ def read_sample(f):
     # 175个节点 × 1个特征 × 4字节 = 700字节
     x = np.frombuffer(
         f.read(config.X_BYTES),            # 读取700字节
-        dtype='float32'             # 按float32解析
+        dtype='>f4'             # 按float32解析
     ).reshape(config.NUM_NODES,config.NODE_FEAT_DIM)  # 重塑为 [175, 176]
+    x = x.astype('<f4')
 
     # 读取 y，单个float32
     # 12字节，总成本，总长度，总重量
-    cost, = struct.unpack('f', f.read(4))       #总成本训练用
-    weight, = struct.unpack('f', f.read(4))     #总重量，暂时不用
-    length, = struct.unpack('f', f.read(4))     #总长度，暂时不用
-    return  edge_index,edge_attr, x, cost
+    cost, = struct.unpack('>f', f.read(4))       #总成本训练用
+    weight, = struct.unpack('>f', f.read(4))     #总重量，暂时不用
+    length, = struct.unpack('>f', f.read(4))     #总长度，暂时不用
+    return  edge_index,edge_attr, x, round(cost,2)
 
 
 def read_sample_by_index(file_list, file_idx, sample_idx):
@@ -195,7 +218,7 @@ def sample_to_tensor(edge_index,edge_attr,  x, y):
     # y转float tensor，包在列表里变成[1]维tensor
     y_t          = torch.tensor([y],dtype=torch.float).to(device)
 
-    return edge_attr_t, edge_index_t, x_t, y_t
+    return edge_index_t,edge_attr_t,  x_t, y_t
 
 def normalize_node_features(price_matrix, wet_costs,
                             price_min, price_max,

@@ -34,5 +34,5 @@ DROUPUT        = 0.5     # Dropout概率,防止过拟合
 # 文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
 TRAIN_FILES  = []  # 训练数据文件列表
-MODEL_SAVE   = 'best_model.pt'                      # 模型保存路径
+MODEL_SAVE   = 'F:\office\pythonProjects\GINEModel\Pt'                      # 模型保存路径
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现

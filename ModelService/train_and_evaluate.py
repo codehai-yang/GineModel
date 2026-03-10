@@ -26,11 +26,8 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
         edge_index,edge_attr, x, y = loadSample.read_sample_by_index(
             file_list, file_idx, sample_idx
         )
-        print(f'edge_index最大值: {edge_index.max()}')   # 不能超过174
-        print(f'edge_index最小值: {edge_index.min()}')   # 不能小于0
-        print(f'节点数量:         {x.shape[0]}')          # 应该是175
         # 转换为tensor
-        edge_attr_t, edge_index_t, x_t, y_t = loadSample.sample_to_tensor(
+        edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
             edge_index,edge_attr,  x, y
         )
 
@@ -93,7 +90,7 @@ def evaluate(model, file_list, eval_indices, max_samples=None):
 
             # 转换为tensor
             edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
-                edge_attr, edge_index, x, y
+                edge_index,edge_attr,  x, y
             )
 
             # 前向传播，得到预测值

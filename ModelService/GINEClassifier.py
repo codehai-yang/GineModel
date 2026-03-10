@@ -87,7 +87,7 @@ class CostModelV2(nn.Module):
         # batch=None时所有节点属于同一张图
         if batch is None:
             batch = torch.zeros(
-                h.size(0), dtype=torch.long
+                h.size(0), dtype=torch.long,device=h.device
             )                                   # 所有节点标记为图0
         graph_emb = global_add_pool(h, batch)   # [175, hidden_dim] → [1, hidden_dim]
 
