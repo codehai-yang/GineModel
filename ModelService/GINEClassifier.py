@@ -7,11 +7,6 @@ class CostModelV2(nn.Module):
     实验版本：使用175×176矩阵作为节点特征
     前175列：该节点到其他所有节点的回路平均单价
     第176列：该节点所有回路的湿区成本总和
-
-    和标准版本的唯一区别：
-    NODE_FEAT_DIM从1变成176
-    不需要circuit_records
-    用global_add_pool替代节点对MLP
     """
 
     def __init__(

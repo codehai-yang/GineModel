@@ -33,6 +33,7 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
 
         # 前向传播：输入数据，得到预测成本
         pred = model(x_t, edge_index_t, edge_attr_t)
+        print("预测成本:" +  pred)
 
         # 计算MSE损失：预测值和真实值的均方误差
         loss = nn.MSELoss()(pred, y_t)
