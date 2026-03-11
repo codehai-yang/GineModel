@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import GINEConv
+import GlobalConfig as config
 
 class CostModelV2(nn.Module):
     """
@@ -11,10 +12,10 @@ class CostModelV2(nn.Module):
 
     def __init__(
             self,
-            node_feat_dim = 176,    # 节点特征维度：175个单价 + 1个湿区成本
-            edge_feat_dim = 4,      # 边特征维度：通断(3维) + 分支长度(1维)
-            hidden_dim    = 64,     # 隐藏层维度
-            num_layers    = 4       # GINE层数
+            node_feat_dim = config.NODE_FEAT_DIM,    # 节点特征维度：175个单价 + 1个湿区成本
+            edge_feat_dim = config.EDGE_FEAT_DIM,      # 边特征维度：通断(3维) + 分支长度(1维)
+            hidden_dim    = config.HIDDEN_DIM,     # 隐藏层维度
+            num_layers    = config.NUM_LAYERS       # GINE层数
     ):
         super(CostModelV2, self).__init__()
 
