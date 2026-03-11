@@ -22,17 +22,17 @@ SAMPLE_BYTES     = EDGE_ATTR_BYTES + EDGE_INDEX_BYTES + X_BYTES + Y_BYTES       
 
 # 训练超参数
 BATCH_SIZE     = 30      # 每个batch的样本数
-NUM_EPOCHS     = 200     # 最大训练轮数
+NUM_EPOCHS     = 400     # 最大训练轮数
 LEARNING_RATE  = 0.001   # 学习率
 HIDDEN_DIM     = 64      # GINE隐藏层维度
 NUM_LAYERS     = 3       # GINE层数
-VALIDATE_EVERY = 5    # 每隔多少个batch验证一次
+VALIDATE_EVERY = 40    # 每隔多少个batch验证一次
 VAL_BATCH_SIZE = 1000    # 每次验证随机抽多少个验证样本
-PATIENCE       = 10      # 早停：连续多少次验证无改善就停止
+PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
 DROUPUT        = 0.5     # Dropout概率,防止过拟合
 
 # 文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
 TRAIN_FILES  = []  # 训练数据文件列表
-MODEL_SAVE   = 'F:\office\pythonProjects\GINEModel\Pt'                      # 模型保存路径
+MODEL_SAVE   = 'F:\office\pythonProjects\GINEModel\Pt\\best_model.pt'                      # 模型保存路径
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现

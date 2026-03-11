@@ -4,6 +4,7 @@ import LoadSample as loadSample
 import GINEClassifier as gineModel
 import GlobalConfig as config
 import train_and_evaluate as trainAndEval
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'使用设备: {device}')
@@ -95,9 +96,6 @@ def train(fileDir):
                     f'学习率: {current_lr:.6f}'
                 )
 
-                # 学习率调度器根据验证loss调整学习率
-                scheduler.step(val_loss)
-
                 # 判断验证loss是否改善
                 if val_loss < best_val_loss:
                     # 验证loss改善，保存当前模型
@@ -115,7 +113,6 @@ def train(fileDir):
                         print(f'\n早停：连续 {config.PATIENCE} 次验证无改善，停止训练')
                         stop_training = True
                         break
-
         # 如果触发了早停，退出epoch循环
         if stop_training:
             break
@@ -123,6 +120,8 @@ def train(fileDir):
         # 打印这个epoch的平均训练loss
         avg_epoch_loss = epoch_train_loss / num_batches
         print(f'Epoch {epoch + 1} 平均训练loss: {avg_epoch_loss:.4f}')
+        # 学习率调度器根据验证loss调整学习率
+        scheduler.step()
 
     # ===== 第四步：最终测试评估 =====
     print('\n' + '=' * 50)
@@ -140,8 +139,16 @@ def train(fileDir):
 
     print(f'最终测试loss: {test_loss:.4f}')
     print('=' * 50)
-
-    return model
+    # ===== 第五步：保存预测结果到 Excel =====
+    # print('\n保存预测结果到 Excel...')
+    # model_dir = os.path.dirname(config.MODEL_SAVE)
+    # excel_path = os.path.join(model_dir, 'test_predictions.xlsx')
+    # trainAndEval.evaluate_and_save_results(
+    #     model, file_list, test_indices,
+    #     excel_path,
+    #     max_samples=None  # None 表示保存所有测试样本
+    # )
+    # return model
 
 if __name__ == '__main__':
     train(config.SAMPLE_SAVE)
