@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import GINEConv
+from torch_geometric.nn import GINEConv, global_add_pool
 import GlobalConfig as config
 
 class CostModelV2(nn.Module):
@@ -22,7 +22,6 @@ class CostModelV2(nn.Module):
         # 输入投影层：176维节点特征降维到hidden_dim
         self.input_proj = nn.Linear(node_feat_dim, hidden_dim)
 
-        #TODO 边特征BatchNorm：只对分支长度归一化,长度会出现为0的情况
         # self.edge_bn = nn.BatchNorm1d(1)
 
         # GINE层和LayerNorm层
@@ -41,10 +40,11 @@ class CostModelV2(nn.Module):
 
         # 全局池化后的MLP：直接输出总成本
         # global_add_pool后维度是hidden_dim
-        self.mlp_reg = nn.Sequential(
-            nn.Linear(hidden_dim, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1)    # 输出总成本，不加Sigmoid
+        self.regressor  = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),  # 第一层：将隐藏维度减半，降低计算复杂度
+            nn.ReLU(),  # ReLU激活函数
+            nn.Dropout(config.DROUPUT),  # Dropout层，随机丢弃神经元防止过拟合
+            nn.Linear(hidden_dim // 2, 1)  # 输出总成本
         )
 
     def forward(self, x, edge_index, edge_attr, batch=None):
@@ -60,14 +60,6 @@ class CostModelV2(nn.Module):
         返回：
             total_cost: 预测总成本（标量）
         """
-        from torch_geometric.nn import global_add_pool
-
-        # ===== 边特征BatchNorm =====
-        onehot    = edge_attr[:, :3]        # 通断one-hot，不归一化
-        length    = edge_attr[:, 3:4]       # 分支长度，归一化
-        # length    = self.edge_bn(length)    # BatchNorm
-        edge_attr = torch.cat([onehot, length], dim=1)  # [211, 4]
-
         # ===== 节点特征投影 =====
         # [175, 176] → [175, hidden_dim]
         h = self.input_proj(x)
@@ -88,6 +80,6 @@ class CostModelV2(nn.Module):
         graph_emb = global_add_pool(h, batch)   # [175, hidden_dim] → [1, hidden_dim]
 
         # ===== MLP输出总成本 =====
-        total_cost = self.mlp_reg(graph_emb)    # [1, hidden_dim] → [1, 1]
+        total_cost = self.regressor(graph_emb)    # [1, hidden_dim] → [1, 1]
 
         return total_cost.squeeze()             # 去掉多余维度，变成标量
