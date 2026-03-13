@@ -5,7 +5,9 @@ import GINEClassifier as gineModel
 import GlobalConfig as config
 import train_and_evaluate as trainAndEval
 import os
+from torch.utils.tensorboard import SummaryWriter
 
+writer = SummaryWriter('runs/experiment_name')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'使用设备: {device}')
 
@@ -113,6 +115,9 @@ def train(fileDir):
                         print(f'\n早停：连续 {config.PATIENCE} 次验证无改善，停止训练')
                         stop_training = True
                         break
+                writer.add_scalar('Loss/trainBatch', batch_loss, batch_count)
+                writer.add_scalar('Loss/valBatch', val_loss, batch_count)
+                writer.add_scalar('Learning Rate/batch', current_lr, epoch)
         # 如果触发了早停，退出epoch循环
         if stop_training:
             break
@@ -122,7 +127,9 @@ def train(fileDir):
         print(f'Epoch {epoch + 1} 平均训练loss: {avg_epoch_loss:.4f}')
         # 学习率调度器根据验证loss调整学习率
         scheduler.step()
+        writer.add_scalar('Loss/trainEpochAvg', avg_epoch_loss, epoch)
 
+    writer.close()
     # ===== 第四步：最终测试评估 =====
     print('\n' + '=' * 50)
     print('训练结束，开始最终测试...')
@@ -140,15 +147,15 @@ def train(fileDir):
     print(f'最终测试loss: {test_loss:.4f}')
     print('=' * 50)
     # ===== 第五步：保存预测结果到 Excel =====
-    # print('\n保存预测结果到 Excel...')
-    # model_dir = os.path.dirname(config.MODEL_SAVE)
-    # excel_path = os.path.join(model_dir, 'test_predictions.xlsx')
-    # trainAndEval.evaluate_and_save_results(
-    #     model, file_list, test_indices,
-    #     excel_path,
-    #     max_samples=None  # None 表示保存所有测试样本
-    # )
-    # return model
+    print('\n保存预测结果到 Excel...')
+    model_dir = os.path.dirname(config.MODEL_SAVE)
+    excel_path = os.path.join(model_dir, 'test_predictions.xlsx')
+    trainAndEval.evaluate_and_save_results(
+        model, file_list, test_indices,
+        excel_path,
+        max_samples=None  # None 表示保存所有测试样本
+    )
+    return model
 
 if __name__ == '__main__':
     train(config.SAMPLE_SAVE)

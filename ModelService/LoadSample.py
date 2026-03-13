@@ -165,7 +165,7 @@ def read_sample(f):
     cost, = struct.unpack('>f', f.read(4))       #总成本训练用
     weight, = struct.unpack('>f', f.read(4))     #总重量，暂时不用
     length, = struct.unpack('>f', f.read(4))     #总长度，暂时不用
-    return  edge_index,edge_attr, x, round(cost,2)
+    return  edge_index,edge_attr, x, cost
 
 
 def read_sample_by_index(file_list, file_idx, sample_idx):

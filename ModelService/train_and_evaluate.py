@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import LoadSample as loadSample
 import pandas as pd
+import Normalize as nz
 
 
 def train_one_batch(model, optimizer, file_list, batch_indices):
@@ -27,6 +28,7 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
         edge_index,edge_attr, x, y = loadSample.read_sample_by_index(
             file_list, file_idx, sample_idx
         )
+        edge_attr,x =  nz.normalize_all(edge_attr,x)
         # 转换为tensor
         edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
             edge_index,edge_attr,  x, y
