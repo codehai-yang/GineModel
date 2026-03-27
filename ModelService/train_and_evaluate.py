@@ -29,6 +29,7 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
             file_list, file_idx, sample_idx
         )
         edge_attr,x =  nz.normalize_all(edge_attr,x)
+        # nz.verify_normalization(edge_attr,x)
         # 转换为tensor
         edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
             edge_index,edge_attr,  x, y
@@ -36,8 +37,6 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
 
         # 前向传播：输入数据，得到预测成本
         pred = model(x_t, edge_index_t, edge_attr_t)
-        print("预测成本:" +  str(pred.item()))
-        print("真实成本:" +  str(y_t.item()))
 
         # 计算MSE损失：预测值和真实值的均方误差
         loss = nn.MSELoss()(pred, y_t)
@@ -92,6 +91,8 @@ def evaluate(model, file_list, eval_indices, max_samples=None):
             edge_index,edge_attr,  x, y = loadSample.read_sample_by_index(
                 file_list, file_idx, sample_idx
             )
+            #标准化
+            edge_attr, x = nz.normalize_all(edge_attr, x)
 
             # 转换为tensor
             edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
@@ -140,7 +141,7 @@ def evaluate_and_save_results(model, file_list, eval_indices, save_path, max_sam
             edge_index, edge_attr, x, y = loadSample.read_sample_by_index(
                 file_list, file_idx, sample_idx
             )
-
+            edge_attr, x = nz.normalize_all(edge_attr, x)
             # 转换为 tensor
             edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
                 edge_index, edge_attr, x, y

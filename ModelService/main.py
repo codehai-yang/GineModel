@@ -121,7 +121,7 @@ def train(fileDir):
         # 如果触发了早停，退出epoch循环
         if stop_training:
             break
-
+        writer.close()
         # 打印这个epoch的平均训练loss
         avg_epoch_loss = epoch_train_loss / num_batches
         print(f'Epoch {epoch + 1} 平均训练loss: {avg_epoch_loss:.4f}')
@@ -129,7 +129,7 @@ def train(fileDir):
         scheduler.step()
         writer.add_scalar('Loss/trainEpochAvg', avg_epoch_loss, epoch)
 
-    writer.close()
+
     # ===== 第四步：最终测试评估 =====
     print('\n' + '=' * 50)
     print('训练结束，开始最终测试...')

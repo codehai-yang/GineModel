@@ -110,7 +110,7 @@ def read_sample(f):
     返回：
         edge_attr:  numpy数组 [211, 4]  边特征：通断(3维) + 分支长度(1维)
         edge_index: numpy数组 [2, 211]  边索引：起点行 + 终点行
-        x:          numpy数组 [175, 1]  节点特征：是否湿区
+        x:          numpy数组 [175, 176]  节点特征：是否湿区
         y:          float               标签：总成本
     """
     # # 读取 edge_index [2, 211]，int32 类型
@@ -136,12 +136,13 @@ def read_sample(f):
 
     # 读取 edge_index [2, 211]，int32类型
     # 2行(起点/终点) × 211条分支 × 4字节 = 1688字节
+    print("函数开始时指针位置:", f.tell())  # 应该是 sample_idx * 128276
     edge_index = np.frombuffer(
         f.read(config.EDGE_INDEX_BYTES),   # 读取1688字节
         dtype='>i4'               # 按int32解析，节点索引是整数
     ).reshape(2,  config.NUM_BRANCHES)      # 重塑为 [2, 211]
     edge_index = edge_index.astype('<i4')
-
+    print("读完edge_index后指针:", f.tell())  # 应该是开始位置 + 1688
     # 读取 edge_attr [211, 4]，float32类型
     # 211条分支 × 4个特征 × 4字节 = 3376字节
     edge_attr = np.frombuffer(
@@ -149,7 +150,8 @@ def read_sample(f):
         dtype='>f4'             # 按float32解析
     ).reshape(config.NUM_BRANCHES,config.EDGE_FEAT_DIM)  # 重塑为 [211, 4]
     edge_attr = edge_attr.astype('<f4')
-
+    print("读完edge_attr后指针:", f.tell())   # 应该是开始位置 + 1688 + 3376
+    print("edge_attr第4列前3个:", edge_attr[:3, 3])
 
 
     # 读取 x [175, 1]，float32类型

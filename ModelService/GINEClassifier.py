@@ -43,7 +43,7 @@ class CostModelV2(nn.Module):
         self.regressor  = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),  # 第一层：将隐藏维度减半，降低计算复杂度
             nn.ReLU(),  # ReLU激活函数
-            nn.Dropout(config.DROUPUT),  # Dropout层，随机丢弃神经元防止过拟合
+            # nn.Dropout(config.DROUPUT),  # Dropout层，随机丢弃神经元防止过拟合
             nn.Linear(hidden_dim // 2, 1)  # 输出总成本
         )
 

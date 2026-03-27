@@ -18,6 +18,7 @@ def normalize_branch_feature(branch_feature):
 
     # 取出第4列：分支长度
     length_col = result[:, 3]               # [211]
+    print(length_col)
 
     # 分支长度不存在有特殊含义的0（现实中不存在长度=0的分支）
     # 直接对整列做标准化

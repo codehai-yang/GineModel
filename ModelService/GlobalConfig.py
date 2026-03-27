@@ -1,7 +1,6 @@
 # ============================================================
 # 全局配置
 # ============================================================
-from torch.ao.nn.quantized import Dropout
 
 # 每个样本各字段的维度
 NUM_BRANCHES   = 211    # 分支数量（边数）
@@ -21,15 +20,15 @@ Y_BYTES          = 4 * 3
 SAMPLE_BYTES     = EDGE_ATTR_BYTES + EDGE_INDEX_BYTES + X_BYTES + Y_BYTES       #一个样本的字节数 128276字节
 
 # 训练超参数
-BATCH_SIZE     = 30      # 每个batch的样本数
-NUM_EPOCHS     = 400     # 最大训练轮数
+BATCH_SIZE     = 128      # 每个batch的样本数
+NUM_EPOCHS     = 300     # 最大训练轮数
 LEARNING_RATE  = 0.001   # 学习率
 HIDDEN_DIM     = 64      # GINE隐藏层维度
 NUM_LAYERS     = 3       # GINE层数
-VALIDATE_EVERY = 40    # 每隔多少个batch验证一次
+VALIDATE_EVERY = 125    # 每隔多少个batch验证一次
 VAL_BATCH_SIZE = 1000    # 每次验证随机抽多少个验证样本
 PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
-DROUPUT        = 0.5     # Dropout概率,防止过拟合
+# DROUPUT        = 0.5     # Dropout概率,防止过拟合
 
 # 文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
