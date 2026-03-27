@@ -100,49 +100,11 @@ def split_indices(all_indices, train_ratio=0.7, val_ratio=0.15, seed=config.RAND
     return train_indices, val_indices, test_indices
 
 def read_sample(f):
-    """
-    从已打开的文件对象中读取一个样本。
-    读取顺序必须和Java写入顺序完全一致。
-
-    参数：
-        f: 已打开的二进制文件对象，文件指针需提前seek到正确位置
-
-    返回：
-        edge_attr:  numpy数组 [211, 4]  边特征：通断(3维) + 分支长度(1维)
-        edge_index: numpy数组 [2, 211]  边索引：起点行 + 终点行
-        x:          numpy数组 [175, 176]  节点特征：是否湿区
-        y:          float               标签：总成本
-    """
-    # # 读取 edge_index [2, 211]，int32 类型
-    # edge_index_bytes = f.read(config.EDGE_INDEX_BYTES)
-    #
-    # # 尝试不同的数据类型和字节序
-    # edge_index = np.frombuffer(
-    #     edge_index_bytes,
-    #     dtype='<i4'  # 显式指定小端 int32
-    # ).reshape(2, config.NUM_BRANCHES)
-    #
-    # # 检查数据是否合理
-    # if edge_index.max() >= config.NUM_NODES or edge_index.min() < 0:
-    #     print(f'警告：edge_index 异常 [{edge_index.min()}, {edge_index.max()}]')
-    #     print(f'原始字节 (前 20): {edge_index_bytes[:20].hex()}')
-    #
-    #     # 尝试按 float32 读取看看
-    #     edge_index_as_float = np.frombuffer(
-    #         edge_index_bytes,
-    #         dtype='<f4'
-    #     ).reshape(2, config.NUM_BRANCHES)
-    #     print(f'如果按 float32 解析：[{edge_index_as_float.min():.4f}, {edge_index_as_float.max():.4f}]')
-
-    # 读取 edge_index [2, 211]，int32类型
-    # 2行(起点/终点) × 211条分支 × 4字节 = 1688字节
-    print("函数开始时指针位置:", f.tell())  # 应该是 sample_idx * 128276
     edge_index = np.frombuffer(
         f.read(config.EDGE_INDEX_BYTES),   # 读取1688字节
         dtype='>i4'               # 按int32解析，节点索引是整数
     ).reshape(2,  config.NUM_BRANCHES)      # 重塑为 [2, 211]
     edge_index = edge_index.astype('<i4')
-    print("读完edge_index后指针:", f.tell())  # 应该是开始位置 + 1688
     # 读取 edge_attr [211, 4]，float32类型
     # 211条分支 × 4个特征 × 4字节 = 3376字节
     edge_attr = np.frombuffer(
@@ -150,9 +112,6 @@ def read_sample(f):
         dtype='>f4'             # 按float32解析
     ).reshape(config.NUM_BRANCHES,config.EDGE_FEAT_DIM)  # 重塑为 [211, 4]
     edge_attr = edge_attr.astype('<f4')
-    print("读完edge_attr后指针:", f.tell())   # 应该是开始位置 + 1688 + 3376
-    print("edge_attr第4列前3个:", edge_attr[:3, 3])
-
 
     # 读取 x [175, 1]，float32类型
     # 175个节点 × 1个特征 × 4字节 = 700字节
