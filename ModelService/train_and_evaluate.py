@@ -6,7 +6,7 @@ import pandas as pd
 import Normalize as nz
 
 
-def train_one_batch(model, optimizer, file_list, batch_indices):
+def train_one_batch(model, optimizer, file_list, batch_indices,device):
     """
     训练一个batch：前向传播 + 计算loss + 反向传播 + 更新权重。
 
@@ -34,6 +34,10 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
         edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
             edge_index,edge_attr,  x, y
         )
+        x_t = x_t.to(device)
+        edge_index_t = edge_index_t.to(device)
+        edge_attr_t = edge_attr_t.to(device)
+        y_t = y_t.to(device)
 
         # 前向传播：输入数据，得到预测成本
         pred = model(x_t, edge_index_t, edge_attr_t)
@@ -59,7 +63,7 @@ def train_one_batch(model, optimizer, file_list, batch_indices):
     return batch_loss.item()    # 返回python float，不再需要梯度
 
 
-def evaluate(model, file_list, eval_indices, max_samples=None):
+def evaluate(model, file_list, eval_indices, max_samples=None,device=None):
     """
     在给定数据集上评估模型，计算平均loss。
     评估时不更新模型权重。
@@ -98,6 +102,10 @@ def evaluate(model, file_list, eval_indices, max_samples=None):
             edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
                 edge_index,edge_attr,  x, y
             )
+            x_t = x_t.to(device)
+            edge_index_t = edge_index_t.to(device)
+            edge_attr_t = edge_attr_t.to(device)
+            y_t = y_t.to(device)
 
             # 前向传播，得到预测值
             pred = model(x_t, edge_index_t, edge_attr_t)
@@ -111,7 +119,7 @@ def evaluate(model, file_list, eval_indices, max_samples=None):
     return avg_loss
 
 
-def evaluate_and_save_results(model, file_list, eval_indices, save_path, max_samples=None):
+def evaluate_and_save_results(model, file_list, eval_indices, save_path, max_samples=None,device=None):
     """
     评估模型并将预测结果和真实值保存到 Excel。
 
@@ -146,6 +154,10 @@ def evaluate_and_save_results(model, file_list, eval_indices, save_path, max_sam
             edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
                 edge_index, edge_attr, x, y
             )
+            x_t = x_t.to(device)
+            edge_index_t = edge_index_t.to(device)
+            edge_attr_t = edge_attr_t.to(device)
+            y_t = y_t.to(device)
 
             # 前向传播，得到预测值
             pred = model(x_t, edge_index_t, edge_attr_t)

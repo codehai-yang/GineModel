@@ -74,7 +74,7 @@ def train(fileDir):
 
             # 训练这个batch，得到loss
             batch_loss = trainAndEval.train_one_batch(
-                model, optimizer, file_list, batch_indices
+                model, optimizer, file_list, batch_indices,device
             )
             epoch_train_loss += batch_loss
             num_batches      += 1
@@ -85,7 +85,7 @@ def train(fileDir):
                 # 随机抽VAL_BATCH_SIZE个验证样本评估
                 val_loss =trainAndEval.evaluate(
                     model, file_list, val_indices,
-                    max_samples=config.VAL_BATCH_SIZE
+                    max_samples=config.VAL_BATCH_SIZE,device=device
                 )
 
                 # 获取当前学习率
@@ -141,7 +141,7 @@ def train(fileDir):
     # 在测试集上评估，使用全部测试样本
     test_loss = trainAndEval.evaluate(
         model, file_list, test_indices,
-         max_samples=None  # None表示用全部测试样本
+         max_samples=None,device=device  # None表示用全部测试样本
     )
 
     print(f'最终测试loss: {test_loss:.4f}')
@@ -153,7 +153,7 @@ def train(fileDir):
     trainAndEval.evaluate_and_save_results(
         model, file_list, test_indices,
         excel_path,
-        max_samples=None  # None 表示保存所有测试样本
+        max_samples=None,device=device # None 表示保存所有测试样本
     )
     return model
 
