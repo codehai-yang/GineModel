@@ -167,17 +167,17 @@ def sample_to_tensor(edge_index,edge_attr,  x, y):
         对应的torch tensor，数据类型正确
     """
     # edge_index转long tensor，PyG要求边索引必须是long(int64)类型
-    edge_index_t = torch.tensor(edge_index,dtype=torch.long).to(device)
+    edge_index_t = torch.tensor(edge_index,dtype=torch.long)
     # edge_attr转float tensor，模型计算需要float类型
-    edge_attr_t  = torch.tensor(edge_attr,dtype=torch.float).to(device)
+    edge_attr_t  = torch.tensor(edge_attr,dtype=torch.float)
 
 
 
     # x转float tensor
-    x_t          = torch.tensor(x,dtype=torch.float).to(device)
+    x_t          = torch.tensor(x,dtype=torch.float)
 
     # y转float tensor，包在列表里变成[1]维tensor
-    y_t          = torch.tensor([y],dtype=torch.float).to(device)
+    y_t          = torch.tensor([y],dtype=torch.float)
 
     return edge_index_t,edge_attr_t,  x_t, y_t
 

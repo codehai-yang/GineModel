@@ -1,187 +1,132 @@
-import random
 import torch
 import torch.nn as nn
-import LoadSample as loadSample
 import pandas as pd
+import random
+import LoadSample as loadSample
 import Normalize as nz
 
 
-def train_one_batch(model, optimizer, file_list, batch_indices,device):
+# ─────────────────────────────────────────────────────────────
+#  核心训练/评估函数
+#  调用方只需传入 DataLoader，不再需要 file_list / indices
+# ─────────────────────────────────────────────────────────────
+
+def train_one_batch(model, optimizer, batch, device):
     """
-    训练一个batch：前向传播 + 计算loss + 反向传播 + 更新权重。
+    训练一个已经由 DataLoader 打包好的 batch。
+
+    DataLoader 通过 torch_geometric.data.Batch.from_data_list 把多个图
+    拼成一张大图传进来，batch.batch 向量记录每个节点属于哪张图，
+    global_add_pool 用它把节点嵌入正确地归约到各自的图。
 
     参数：
-        model:           GINEClassifier模型
-        optimizer:       优化器
-        file_list:       数据文件路径列表
-        batch_indices:   这个batch的样本索引列表，每个元素是(file_idx, sample_idx)
+        model     : CostModelV2
+        optimizer : 优化器
+        batch     : torch_geometric.data.Batch，包含 x / edge_index / edge_attr / y / batch
+        device    : 目标设备
+
     返回：
-        batch_loss: 这个batch的平均loss值（float）
+        (loss_sum, num_samples) 元组，用于后续加权平均
     """
-    model.train()               # 切换到训练模式，启用BatchNorm和Dropout
-    optimizer.zero_grad()       # 清空上一个batch的梯度，防止梯度累积
+    model.train()
+    optimizer.zero_grad()
 
-    batch_loss = torch.tensor(0.0)  # 累积这个batch所有样本的loss
+    batch = batch.to(device)
 
-    for file_idx, sample_idx in batch_indices:
-        # 从文件中读取这个样本
-        edge_index,edge_attr, x, y = loadSample.read_sample_by_index(
-            file_list, file_idx, sample_idx
-        )
-        edge_attr,x =  nz.normalize_all(edge_attr,x)
-        # nz.verify_normalization(edge_attr,x)
-        # 转换为tensor
-        edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
-            edge_index,edge_attr,  x, y
-        )
-        x_t = x_t.to(device)
-        edge_index_t = edge_index_t.to(device)
-        edge_attr_t = edge_attr_t.to(device)
-        y_t = y_t.to(device)
+    pred = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch)  # [B]
+    y    = batch.y.squeeze()                                                # [B]
 
-        # 前向传播：输入数据，得到预测成本
-        pred = model(x_t, edge_index_t, edge_attr_t)
+    loss = nn.MSELoss(reduction='sum')(pred, y)
+    loss.backward()
 
-        # 计算MSE损失：预测值和真实值的均方误差
-        loss = nn.MSELoss()(pred, y_t)
-
-        # 累加这个样本的loss
-        batch_loss = batch_loss + loss
-
-    # 对batch内所有样本的loss求平均
-    batch_loss = batch_loss / len(batch_indices)
-
-    # 反向传播：计算所有参数的梯度
-    batch_loss.backward()
-
-    # 梯度裁剪：防止梯度爆炸，限制梯度的最大范数为1.0
     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-
-    # 更新模型参数：用梯度更新权重
     optimizer.step()
 
-    return batch_loss.item()    # 返回python float，不再需要梯度
+    return loss.item(), batch.num_graphs
 
 
-def evaluate(model, file_list, eval_indices, max_samples=None,device=None):
+@torch.no_grad()
+def evaluate(model, loader, device, max_samples=None):
     """
-    在给定数据集上评估模型，计算平均loss。
-    评估时不更新模型权重。
+    在 DataLoader 上评估模型，返回平均 MSE。
 
     参数：
-        model:           CostModel模型
-        file_list:       数据文件路径列表
-        eval_indices:    评估集的样本索引列表
-        circuit_records: 回路记录列表
-        max_samples:     最多评估多少个样本，None表示全部评估
+        model       : CostModelV2
+        loader      : torch_geometric.loader.DataLoader（验证集或测试集）
+        device      : 目标设备
+        max_samples : 最多评估多少个样本，None 表示全部；
+                      用于验证阶段快速采样，不影响 loader 本身
 
     返回：
-        avg_loss: 平均MSE损失（float）
-    """
-    model.eval()    # 切换到评估模式，关闭BatchNorm的训练行为
-
-    # 如果指定了最大样本数，随机抽取
-    if max_samples and max_samples < len(eval_indices):
-        sampled_indices = random.sample(eval_indices, max_samples)
-    else:
-        sampled_indices = eval_indices  # 使用全部评估样本
-
-    total_loss = 0.0
-
-    # torch.no_grad()：评估时不计算梯度，节省内存和计算
-    with torch.no_grad():
-        for file_idx, sample_idx in sampled_indices:
-            # 读取样本
-            edge_index,edge_attr,  x, y = loadSample.read_sample_by_index(
-                file_list, file_idx, sample_idx
-            )
-            #标准化
-            edge_attr, x = nz.normalize_all(edge_attr, x)
-
-            # 转换为tensor
-            edge_index_t,edge_attr_t,  x_t, y_t = loadSample.sample_to_tensor(
-                edge_index,edge_attr,  x, y
-            )
-            x_t = x_t.to(device)
-            edge_index_t = edge_index_t.to(device)
-            edge_attr_t = edge_attr_t.to(device)
-            y_t = y_t.to(device)
-
-            # 前向传播，得到预测值
-            pred = model(x_t, edge_index_t, edge_attr_t)
-
-            # 计算loss并累加
-            loss = nn.MSELoss()(pred, y_t)
-            total_loss += loss.item()
-
-    # 返回平均loss
-    avg_loss = total_loss / len(sampled_indices)
-    return avg_loss
-
-
-def evaluate_and_save_results(model, file_list, eval_indices, save_path, max_samples=None,device=None):
-    """
-    评估模型并将预测结果和真实值保存到 Excel。
-
-    参数：
-        model:          CostModel 模型
-        file_list:      数据文件路径列表
-        eval_indices:   评估集的样本索引列表
-        save_path:      Excel 保存路径
-        max_samples:    最多评估多少个样本，None 表示全部评估
+        avg_loss（float）
     """
     model.eval()
 
-    # 如果指定了最大样本数，随机抽取
-    if max_samples and max_samples < len(eval_indices):
-        sampled_indices = random.sample(eval_indices, max_samples)
-    else:
-        sampled_indices = eval_indices
+    total_loss  = 0.0
+    total_count = 0
 
-    results = []  # 存储结果的列表
+    for batch in loader:
+        batch = batch.to(device)
 
-    print(f'\n开始在评估集上预测并保存结果...')
-    print(f'样本数量：{len(sampled_indices)}')
+        pred = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch)
+        y    = batch.y.squeeze()
 
-    with torch.no_grad():
-        for idx, (file_idx, sample_idx) in enumerate(sampled_indices):
-            # 读取样本
-            edge_index, edge_attr, x, y = loadSample.read_sample_by_index(
-                file_list, file_idx, sample_idx
-            )
-            edge_attr, x = nz.normalize_all(edge_attr, x)
-            # 转换为 tensor
-            edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
-                edge_index, edge_attr, x, y
-            )
-            x_t = x_t.to(device)
-            edge_index_t = edge_index_t.to(device)
-            edge_attr_t = edge_attr_t.to(device)
-            y_t = y_t.to(device)
+        # MSE 是对所有样本求均值，这里用 sum 后统一平均
+        loss = nn.MSELoss(reduction='sum')(pred, y)
+        total_loss  += loss.item()
+        total_count += batch.num_graphs
 
-            # 前向传播，得到预测值
-            pred = model(x_t, edge_index_t, edge_attr_t)
+        if max_samples is not None and total_count >= max_samples:
+            break
 
-            # 收集结果（保留原始精度）
+    return total_loss / total_count
+
+
+@torch.no_grad()
+def evaluate_and_save_results(model, loader, save_path, device, max_samples=None):
+    """
+    评估模型并将预测结果保存到 Excel。
+
+    参数：
+        model       : CostModelV2
+        loader      : DataLoader（测试集）
+        save_path   : Excel 保存路径
+        device      : 目标设备
+        max_samples : None 表示全部
+    """
+    model.eval()
+
+    results     = []
+    sample_idx  = 0
+
+    print(f'\n开始预测并保存结果...')
+
+    for batch in loader:
+        batch = batch.to(device)
+
+        preds = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch)  # [B]
+        ys    = batch.y.squeeze()                                                # [B]
+
+        # 兼容 batch_size=1 时 squeeze 成标量的情况
+        preds = preds.view(-1)
+        ys    = ys.view(-1)
+
+        for pred_val, y_val in zip(preds.tolist(), ys.tolist()):
             results.append({
-                '样本编号': idx + 1,
-                '样本索引': sample_idx,
-                '预测成本': pred.item(),
-                '真实成本': y_t.item(),
-                '误差': abs(pred.item() - y_t.item())
+                '样本编号': sample_idx + 1,
+                '预测成本': pred_val,
+                '真实成本': y_val,
+                '误差'    : abs(pred_val - y_val)
             })
+            sample_idx += 1
 
-            # 每 50 个样本打印一次进度
-            if (idx + 1) % 50 == 0:
-                print(f'  已处理 {idx + 1}/{len(sampled_indices)} 个样本')
+        if (sample_idx) % 100 == 0:
+            print(f'  已处理 {sample_idx} 个样本')
 
-    # 创建 DataFrame 并保存到 Excel
-    df = pd.DataFrame(results)
+        if max_samples is not None and sample_idx >= max_samples:
+            break
 
-    # 调整列顺序
-    df = df[['样本编号', '样本索引', '预测成本', '真实成本', '误差']]
-
-    # 保存到 Excel
+    df = pd.DataFrame(results)[['样本编号', '预测成本', '真实成本', '误差']]
     df.to_excel(save_path, index=False, float_format='%.6f')
 
     print(f'\n结果已保存到：{save_path}')
