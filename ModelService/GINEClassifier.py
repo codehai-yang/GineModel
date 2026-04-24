@@ -82,4 +82,4 @@ class CostModelV2(nn.Module):
         # ===== MLP输出总成本 =====
         total_cost = self.regressor(graph_emb)    # [1, hidden_dim] → [1, 1]
 
-        return total_cost.squeeze()             # 去掉多余维度，变成标量
+        return total_cost.squeeze(-1)             # 去掉多余维度，变成标量
