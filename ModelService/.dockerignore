@@ -4,3 +4,8 @@ __pycache__
 .env
 venv
 data
+Samples
+Pt
+runs
+*.pt
+*.png

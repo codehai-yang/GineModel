@@ -1,4 +1,3 @@
-import os
 import GlobalConfig as config       #全局配置文件
 import os
 import random

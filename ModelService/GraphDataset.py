@@ -1,4 +1,3 @@
-import torch
 from torch_geometric.data import Dataset, Data
 import LoadSample as loadSample
 import Normalize as nz

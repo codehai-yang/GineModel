@@ -1,9 +1,6 @@
 import numpy as np
 import torch
-import struct
 import GINEClassifier as gineModel
-import GlobalConfig as config
-
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
