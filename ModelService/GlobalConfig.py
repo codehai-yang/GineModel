@@ -1,7 +1,8 @@
 # ============================================================
 # 全局配置
 # ============================================================
-
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 每个样本各字段的维度
 NUM_BRANCHES   = 211    # 分支数量（边数）
 NUM_NODES      = 175    # 分支点数量（节点数）
@@ -33,5 +34,5 @@ PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
 # 文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
 TRAIN_FILES  = []  # 训练数据文件列表
-MODEL_SAVE   = 'F:\office\pythonProjects\GINEModel\Pt\\best_model.pt'                      # 模型保存路径
+MODEL_SAVE   = os.path.join(PROJECT_ROOT, 'Pt', 'best_model.pt')     # 模型保存路径
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现
