@@ -32,6 +32,7 @@ PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
 # DROUPUT        = 0.5     # Dropout概率,防止过拟合
 
 # 文件路径
+NORMALIZATION_PARAMS = os.path.join(PROJECT_ROOT, 'Pt', 'normalization_params.json')  # 归一化参数文件路径
 SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
 TRAIN_FILES  = []  # 训练数据文件列表
 MODEL_SAVE   = os.path.join(PROJECT_ROOT, 'Pt', 'best_model.pt')     # 模型保存路径

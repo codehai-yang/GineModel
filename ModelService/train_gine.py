@@ -8,6 +8,7 @@ import train_and_evaluate as trainAndEval
 from GraphDataset import GraphDataset
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import Normalize as nz
 
 
 # ─────────────────────────────────────────────────────────────
@@ -82,6 +83,11 @@ def train(args):
     num_workers_train = args.num_workers_train if args.num_workers_train is not None else 2
     num_workers_eval = args.num_workers_eval if args.num_workers_eval is not None else 1
     seed = args.seed if args.seed else config.RANDOM_SEED
+
+    # 设置归一化参数文件路径
+    norm_params_path = args.norm_params if args.norm_params else config.NORMALIZATION_PARAMS
+    nz.set_normalization_params_path(norm_params_path)
+    print(f'归一化参数文件: {norm_params_path}')
 
     # 设置随机种子
     torch.manual_seed(seed)
@@ -249,6 +255,8 @@ def parse_args():
                         help='样本数据目录路径（默认使用 GlobalConfig.SAMPLE_SAVE）')
     parser.add_argument('--model_save', type=str, default=None,
                         help='模型保存路径（默认使用 GlobalConfig.MODEL_SAVE）')
+    parser.add_argument('--norm_params', type=str, default=None,
+                        help='归一化参数文件路径（默认使用 GlobalConfig.NORMALIZATION_PARAMS）')
 
     # ===== 训练超参数 =====
     parser.add_argument('--batch_size', type=int, default=None,

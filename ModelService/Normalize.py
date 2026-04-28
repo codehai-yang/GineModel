@@ -3,12 +3,32 @@ import json
 import os
 
 _GLOBAL_STATS = {}
+_NORMALIZATION_PARAMS_PATH = None
 
-def load_global_stats(json_path):
+def set_normalization_params_path(path):
+    """
+    设置归一化参数文件路径（可选，用于命令行指定）
+    """
+    global _NORMALIZATION_PARAMS_PATH
+    _NORMALIZATION_PARAMS_PATH = path
+
+def load_global_stats(json_path=None):
     """
     从 JSON 文件加载全局归一化参数
+
+    参数：
+        json_path: 归一化参数文件路径，如果为None则使用默认路径或已设置的路径
     """
     global _GLOBAL_STATS
+
+    if json_path is None:
+        json_path = _NORMALIZATION_PARAMS_PATH
+
+    if json_path is None:
+        # 使用默认路径
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(current_dir, '..', 'Pt', 'normalization_params.json')
+
     if not os.path.exists(json_path):
         raise FileNotFoundError(f"归一化参数文件不存在: {json_path}")
 
@@ -81,16 +101,9 @@ def normalize_all(branch_feature, circuit_cost):
     """
     对所有需要归一化的字段统一处理。
     """
-    # 如果还没加载参数，尝试自动加载默认路径
-    # 注意：在多进程 worker 中，_GLOBAL_STATS 初始为空，会触发此加载逻辑
+    # 如果还没加载参数，尝试自动加载
     if not _GLOBAL_STATS:
-        # 获取 Pt 目录下的参数文件路径
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        default_path = os.path.join(current_dir, '..', 'Pt', 'normalization_params.json')
-        if os.path.exists(default_path):
-            load_global_stats(default_path)
-        else:
-            raise RuntimeError(f"未找到全局归一化参数文件: {default_path}")
+        load_global_stats()
 
     branch_feature_norm = normalize_branch_feature(branch_feature)
     circuit_cost_norm = normalize_price_matrix(circuit_cost)
