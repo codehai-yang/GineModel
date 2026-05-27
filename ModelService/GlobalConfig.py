@@ -3,6 +3,10 @@
 # ============================================================
 import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_INPUT_DIR = os.environ.get('IWORK_DATA_IN1', '').rstrip('/')
+SD_ID_AI_DIR = os.environ.get('SD_ID_AI', '').rstrip('/')
+DATA_OUTPUT_DIR = os.environ.get('IWORK_DATA_OUT', '').rstrip('/')
+
 
 # 每个样本各字段的维度
 NUM_BRANCHES   = 211    # 分支数量（边数）
@@ -33,8 +37,21 @@ PATIENCE       = 20      # 早停：连续多少次验证无改善就停止
 # DROUPUT        = 0.5     # Dropout概率,防止过拟合
 
 # 文件路径
-NORMALIZATION_PARAMS = os.path.join(PROJECT_ROOT, 'Pt', 'normalization_params.json')  # 归一化参数文件路径
-SAMPLE_SAVE = 'F:\office\pythonProjects\GINEModel\Samples'                  #所有样本存放目录
+NORMALIZATION_PARAMS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'normalization_params.json')
 TRAIN_FILES  = []  # 训练数据文件列表
-MODEL_SAVE   = os.path.join(PROJECT_ROOT, 'Pt', 'best_model.pt')     # 模型保存路径
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现
+
+if SD_ID_AI_DIR:
+    SAMPLE_SAVE = os.path.join(DATA_INPUT_DIR, SD_ID_AI_DIR)
+else:
+    SAMPLE_SAVE = DATA_INPUT_DIR
+
+if DATA_OUTPUT_DIR:
+    MODEL_SAVE = os.path.join(DATA_OUTPUT_DIR, 'pt', 'best_model.pt')
+    LOG_DIR = os.path.join(DATA_OUTPUT_DIR, 'logs')
+else:
+    MODEL_SAVE = '/app/pt/best_model.pt'
+    LOG_DIR = '/app/logs'
+
+os.makedirs(os.path.dirname(MODEL_SAVE), exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
