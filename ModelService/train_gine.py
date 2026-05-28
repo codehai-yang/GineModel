@@ -3,12 +3,29 @@ import torch
 import LoadSample as loadSample
 import GINEClassifier as gineModel
 import argparse
+import logging
+import sys
 import GlobalConfig as config
 import train_and_evaluate as trainAndEval
 from GraphDataset import GraphDataset
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import Normalize as nz
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(config.LOG_DIR + '/train.txt'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    logger.error('Uncaught exception', exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = handle_exception
 
 
 # ─────────────────────────────────────────────────────────────
@@ -87,6 +104,8 @@ def train(args):
     # 设置归一化参数文件路径
     norm_params_path = args.norm_params if args.norm_params else config.NORMALIZATION_PARAMS
     nz.set_normalization_params_path(norm_params_path)
+    print("IWORK_DATA_OUT =", repr(os.environ.get('IWORK_DATA_OUT', '')))
+    print("IWORK_DATA_IN1 =", repr(os.environ.get('IWORK_DATA_IN1', '')))
     print(f'归一化参数文件: {norm_params_path}')
 
     # 设置随机种子
