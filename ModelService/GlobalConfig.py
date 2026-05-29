@@ -41,8 +41,9 @@ NORMALIZATION_PARAMS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 TRAIN_FILES  = []  # 训练数据文件列表
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现
 
-if SD_ID_AI_DIR:
-    SAMPLE_SAVE = os.path.join(DATA_INPUT_DIR, SD_ID_AI_DIR)
+sample_dir = os.path.join(DATA_INPUT_DIR, SD_ID_AI_DIR)
+if sample_dir:
+    SAMPLE_SAVE = sample_dir
 else:
     SAMPLE_SAVE = DATA_INPUT_DIR
 
