@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir \
 
 # 第二步：安装 torch_geometric（从 PyPI 直接安装）
 # 根据 PyG 官方文档，2.3 及以上版本支持此方法
-RUN pip install --no-cache-dir torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric==2.6.1 -f https://data.pyg.org/whl/torch-2.5.1+cu118.html
+RUN pip install --no-cache-dir torch_geometric==2.6.1
 
 # 第三步：安装其他依赖（使用清华镜像）
 COPY requirements.txt .
