@@ -1,0 +1,83 @@
+2026-06-01 01:54:16,991 - IWORK_DATA_OUT =
+2026-06-01 01:54:16,991 - ''
+2026-06-01 01:54:16,991 - IWORK_DATA_IN1 =
+2026-06-01 01:54:16,992 - ''
+2026-06-01 01:54:16,992 - 归一化参数文件: /output/normalization_params.json
+2026-06-01 01:54:17,001 - ==================================================
+2026-06-01 01:54:17,002 - 训练配置:
+2026-06-01 01:54:17,002 -   数据目录: /data
+2026-06-01 01:54:17,003 -   模型保存: /output/bestModel.pt
+2026-06-01 01:54:17,003 -   设备: cpu
+2026-06-01 01:54:17,003 -   批次大小: 128
+2026-06-01 01:54:17,003 -   训练轮数: 300
+2026-06-01 01:54:17,004 -   学习率: 0.001
+2026-06-01 01:54:17,004 -   权重衰减: 0.01
+2026-06-01 01:54:17,004 -   隐藏层维度: 64
+2026-06-01 01:54:17,005 -   GINE层数: 3
+2026-06-01 01:54:17,005 -   早停耐心值: 20
+2026-06-01 01:54:17,005 -   验证频率: 125
+2026-06-01 01:54:17,005 -   验证采样数: 1000
+2026-06-01 01:54:17,006 -   Worker数(训练/验证): 2/1
+2026-06-01 01:54:17,006 -   随机种子: 42
+2026-06-01 01:54:17,006 - ==================================================
+2026-06-01 01:54:17,006 - 
+建立全局索引...
+2026-06-01 01:54:17,026 - 目录 /data 下找到 17 个文件
+2026-06-01 01:54:17,033 -   Samples_20260423_144410_306: 7886 个样本
+2026-06-01 01:54:17,034 -   Samples_20260423_161407_730: 89 个样本
+2026-06-01 01:54:17,038 -   Samples_20260423_162646_576: 5232 个样本
+2026-06-01 01:54:17,041 -   Samples_20260423_171843_157: 3472 个样本
+2026-06-01 01:54:17,047 -   Samples_20260423_210113_665: 7465 个样本
+2026-06-01 01:54:17,054 -   Samples_20260424_094050_144: 8685 个样本
+2026-06-01 01:54:17,057 -   Samples_20260528_093052_168: 3705 个样本
+2026-06-01 01:54:17,059 -   Samples_20260528_125200_782: 2200 个样本
+2026-06-01 01:54:17,060 -   Samples_20260528_164254_181: 483 个样本
+2026-06-01 01:54:17,061 -   Samples_20260528_170207_730: 1104 个样本
+2026-06-01 01:54:17,071 -   Samples_20260528_171515_859: 510 个样本
+2026-06-01 01:54:17,078 -   Samples_20260528_172657_718: 3219 个样本
+2026-06-01 01:54:17,079 -   Samples_20260529_105547_033: 1585 个样本
+2026-06-01 01:54:17,081 -   Samples_20260529_112012_826: 1730 个样本
+2026-06-01 01:54:17,082 -   Samples_20260529_114735_580: 1596 个样本
+2026-06-01 01:54:17,083 -   Samples_20260529_124821_325: 598 个样本
+2026-06-01 01:54:17,085 -   Samples_20260529_131500_447: 1989 个样本
+2026-06-01 01:54:17,086 - 总样本数: 51548
+2026-06-01 01:54:17,086 - 
+划分数据集...
+2026-06-01 01:54:17,111 - 训练集: 36083 个样本
+2026-06-01 01:54:17,113 - 验证集: 7732   个样本
+2026-06-01 01:54:17,113 - 测试集: 7733  个样本
+2026-06-01 01:54:17,114 - 
+构建 DataLoader...
+2026-06-01 01:54:17,116 -   训练集: 36083 样本 | 验证集: 7732 样本 | 测试集: 7733 样本
+2026-06-01 01:54:17,117 - 
+初始化模型...
+2026-06-01 01:54:17,170 - 
+开始训练...
+2026-06-01 01:54:17,170 - ==================================================
+2026-06-01 01:54:17,171 - 
+Epoch 1/300
+2026-06-01 01:54:27,768 - Uncaught exception
+Traceback (most recent call last):
+  File "/app/train_gine.py", line 339, in <module>
+    train(args)
+  File "/app/train_gine.py", line 210, in train
+    for batch in train_loader:
+  File "/usr/local/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 701, in __next__
+    data = self._next_data()
+  File "/usr/local/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1448, in _next_data
+    idx, data = self._get_data()
+  File "/usr/local/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1412, in _get_data
+    success, data = self._try_get_data()
+  File "/usr/local/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1243, in _try_get_data
+    data = self._data_queue.get(timeout=timeout)
+  File "/usr/local/lib/python3.9/multiprocessing/queues.py", line 113, in get
+    if not self._poll(timeout):
+  File "/usr/local/lib/python3.9/multiprocessing/connection.py", line 257, in poll
+    return self._poll(timeout)
+  File "/usr/local/lib/python3.9/multiprocessing/connection.py", line 424, in _poll
+    r = wait([self], timeout)
+  File "/usr/local/lib/python3.9/multiprocessing/connection.py", line 931, in wait
+    ready = selector.select(timeout)
+  File "/usr/local/lib/python3.9/selectors.py", line 416, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt

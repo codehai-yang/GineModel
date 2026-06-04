@@ -13,5 +13,6 @@ RUN pip install --no-cache-dir torch_geometric==2.6.1
 # 第三步：安装其他依赖（使用清华镜像）
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    --index-url https://pypi.tuna.tsinghua.edu.cn/simple \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    --extra-index-url https://pypi.org/simple \
     --trusted-host pypi.tuna.tsinghua.edu.cn

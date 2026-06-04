@@ -1,10 +1,29 @@
 import os
+import logging
+import sys
+class OutputRedirector:
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.buffer = []
+
+    def write(self, message):
+        if message.strip():
+            self.logger.log(self.level, message.rstrip())
+
+    def flush(self):
+        pass
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 import torch
 import LoadSample as loadSample
 import GINEClassifier as gineModel
 import argparse
-import logging
-import sys
 import GlobalConfig as config
 import train_and_evaluate as trainAndEval
 from GraphDataset import GraphDataset
@@ -12,19 +31,18 @@ from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import Normalize as nz
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(config.LOG_DIR + '/train.txt'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+os.makedirs(config.LOG_DIR, exist_ok=True)
+file_handler = logging.FileHandler(config.LOG_DIR + '/train.txt')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+logging.getLogger().addHandler(file_handler)
+
+sys.stdout = OutputRedirector(logging.getLogger())
+sys.stderr = OutputRedirector(logging.getLogger(), logging.ERROR)
+
 logger = logging.getLogger(__name__)
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     logger.error('Uncaught exception', exc_info=(exc_type, exc_value, exc_traceback))
-
 sys.excepthook = handle_exception
 
 
@@ -256,7 +274,7 @@ def train(args):
     model_dir = os.path.dirname(model_save)
     excel_path = os.path.join(model_dir, 'test_predictions.xlsx')
     trainAndEval.evaluate_and_save_results(
-        model, test_loader, excel_path, device
+        model, test_loader, excel_path, device,20000
     )
     return model
 

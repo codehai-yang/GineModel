@@ -4,7 +4,7 @@
 import os
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_INPUT_DIR = os.environ.get('IWORK_DATA_IN1', '').rstrip('/')
-SD_ID_AI_DIR = os.environ.get('SD_ID_AI', '').rstrip('/')
+SD_ID_AI_DIR = 'SD_ID_AI'
 DATA_OUTPUT_DIR = os.environ.get('IWORK_DATA_OUT', '').rstrip('/')
 
 
@@ -41,9 +41,13 @@ NORMALIZATION_PARAMS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 TRAIN_FILES  = []  # 训练数据文件列表
 RANDOM_SEED  = 42                                   # 随机种子，保证结果可复现
 
-sample_dir = os.path.join(DATA_INPUT_DIR, SD_ID_AI_DIR)
-if sample_dir:
-    SAMPLE_SAVE = sample_dir
+path1 = os.path.join(DATA_INPUT_DIR, SD_ID_AI_DIR)
+path2 = os.path.join(DATA_INPUT_DIR, 'TrainData', SD_ID_AI_DIR)
+
+if os.path.exists(path1) and path1 != DATA_INPUT_DIR:
+    SAMPLE_SAVE = path1
+elif os.path.exists(path2) and path2 != DATA_INPUT_DIR:
+    SAMPLE_SAVE = path2
 else:
     SAMPLE_SAVE = DATA_INPUT_DIR
 
