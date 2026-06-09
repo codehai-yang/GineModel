@@ -97,9 +97,50 @@ def normalize_price_matrix(circuit_cost):
     return result
 
 
-def normalize_all(branch_feature, circuit_cost):
+def normalize_y(y):
+    """
+    对样本标签 y（总成本）做标准化。
+    使用 JSON 中的 total_cost_mean / total_cost_std。
+
+    参数：
+        y : float（总成本原始值）
+    返回：
+        float（标准化后的 y）
+    """
+    # 如果还没加载参数，尝试自动加载
+    if not _GLOBAL_STATS:
+        load_global_stats()
+
+    mean = _GLOBAL_STATS.get('total_cost_mean', 0.0)
+    std  = _GLOBAL_STATS.get('total_cost_std', 1.0)
+
+    if std > 1e-6:
+        return (y - mean) / std
+    return 0.0
+
+
+def denormalize_y(y_norm):
+    """
+    将标准化后的 y 还原为原始成本值。
+
+    参数：
+        y_norm : float 或 numpy array / tensor（标准化后的值）
+    返回：
+        同类型，还原后的原始成本
+    """
+    if not _GLOBAL_STATS:
+        load_global_stats()
+
+    mean = _GLOBAL_STATS.get('total_cost_mean', 0.0)
+    std  = _GLOBAL_STATS.get('total_cost_std', 1.0)
+
+    return y_norm * std + mean
+
+
+def normalize_all(branch_feature, circuit_cost, y):
     """
     对所有需要归一化的字段统一处理。
+    包含：分支长度、回路单价、湿区成本、样本标签 y。
     """
     # 如果还没加载参数，尝试自动加载
     if not _GLOBAL_STATS:
@@ -109,7 +150,10 @@ def normalize_all(branch_feature, circuit_cost):
     circuit_cost_norm = normalize_price_matrix(circuit_cost)
     circuit_cost_norm = normalize_wet_cost(circuit_cost_norm)
 
-    return branch_feature_norm, circuit_cost_norm
+    # 标签 y 标准化
+    y_norm = normalize_y(y)
+
+    return branch_feature_norm, circuit_cost_norm, y_norm
 
 def verify_normalization(branch_feature_norm, circuit_cost_norm):
     """

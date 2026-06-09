@@ -36,7 +36,7 @@ class GraphDataset(Dataset):
         )
 
         # 归一化（在 worker 进程里并行，不占主进程/GPU时间）
-        edge_attr, x = nz.normalize_all(edge_attr, x)
+        edge_attr, x, y = nz.normalize_all(edge_attr, x, y)
 
         # 转为 tensor
         edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
