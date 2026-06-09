@@ -18,12 +18,15 @@ def compute_stats(file_list, indices):
     all_branch_lengths = []
     all_prices = []
     all_wet_costs = []
+    all_total_cost = []
+    all_total_length = []
+    all_total_weight = []
 
     for idx, (file_idx, sample_idx) in enumerate(indices):
         try:
-            edge_index, edge_attr, x, y = loadSample.read_sample_by_index(
-                file_list, file_idx, sample_idx
-            )
+            # 读取完整样本，包含三个标签
+            edge_index, edge_attr, x, total_cost, total_length, total_weight = \
+                loadSample.read_sample_full(file_list, file_idx, sample_idx)
 
             # 1. 分支长度 (edge_attr 第4列)
             all_branch_lengths.append(edge_attr[:, 3])
@@ -40,6 +43,11 @@ def compute_stats(file_list, indices):
             if len(nonzero_wet) > 0:
                 all_wet_costs.append(nonzero_wet)
 
+            # 4. 样本标签：总成本、总长度、总重量（每个样本一个值）
+            all_total_cost.append(total_cost)
+            all_total_length.append(total_length)
+            all_total_weight.append(total_weight)
+
             if (idx + 1) % 1000 == 0:
                 print(f"  已处理 {idx + 1} / {len(indices)} 个样本...")
 
@@ -55,13 +63,26 @@ def compute_stats(file_list, indices):
     prices = np.concatenate(all_prices) if all_prices else np.array([0.0])
     wet_costs = np.concatenate(all_wet_costs) if all_wet_costs else np.array([0.0])
 
+    # 标签数据
+    total_costs = np.array(all_total_cost)
+    total_lengths = np.array(all_total_length)
+    total_weights = np.array(all_total_weight)
+
     stats = {
+        # 特征归一化参数
         'branch_length_mean': float(branch_lengths.mean()),
         'branch_length_std':  float(branch_lengths.std()),
         'price_mean':         float(prices.mean()),
         'price_std':          float(prices.std()),
         'wet_cost_mean':      float(wet_costs.mean()),
         'wet_cost_std':       float(wet_costs.std()),
+        # 标签归一化参数
+        'total_cost_mean':    float(total_costs.mean()),
+        'total_cost_std':     float(total_costs.std()),
+        'total_length_mean':  float(total_lengths.mean()),
+        'total_length_std':   float(total_lengths.std()),
+        'total_weight_mean':  float(total_weights.mean()),
+        'total_weight_std':   float(total_weights.std()),
     }
 
     return stats
@@ -69,7 +90,7 @@ def compute_stats(file_list, indices):
 def main():
     # 配置路径
     data_dir = config.SAMPLE_SAVE
-    output_path = os.path.join(os.path.dirname(config.MODEL_SAVE), 'normalization_params.json')
+    output_path = os.path.join(os.path.dirname(config.MODEL_SAVE), 'normalization_params2.json')
 
     print("=" * 50)
     print("开始计算全局归一化参数（全量训练集）")
@@ -93,8 +114,19 @@ def main():
     print("\n" + "=" * 50)
     print("计算完成！统计结果如下：")
     print("=" * 50)
-    for key, value in stats.items():
-        print(f"{key}: {value:.6f}")
+    print("\n[特征归一化参数]")
+    feat_keys = ['branch_length_mean', 'branch_length_std', 'price_mean', 'price_std',
+                 'wet_cost_mean', 'wet_cost_std']
+    for key in feat_keys:
+        if key in stats:
+            print(f"  {key}: {stats[key]:.6f}")
+
+    print("\n[标签归一化参数]")
+    label_keys = ['total_cost_mean', 'total_cost_std', 'total_length_mean', 'total_length_std',
+                  'total_weight_mean', 'total_weight_std']
+    for key in label_keys:
+        if key in stats:
+            print(f"  {key}: {stats[key]:.6f}")
 
     # 5. 保存文件
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
