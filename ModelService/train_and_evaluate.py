@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import pandas as pd
+import Normalize as nz
 
 
 # ─────────────────────────────────────────────────────────────
@@ -108,13 +109,17 @@ def evaluate_and_save_results(model, loader, save_path, device, max_samples=None
     for batch in loader:
         batch = batch.to(device)
 
-        preds = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch)  # [B]
-        ys    = batch.y.squeeze()                                                # [B]
+        preds = model(batch.x, batch.edge_index, batch.edge_attr, batch.batch)  # [B] 标准化空间
+        ys    = batch.y.squeeze()                                                # [B] 标准化空间
 
         preds = preds.view(-1)
         ys    = ys.view(-1)
 
-        for pred_val, y_val in zip(preds.tolist(), ys.tolist()):
+        # 反归一化：还原到原始成本（给人看的）
+        preds_real = nz.denormalize_y(preds.detach().cpu())
+        ys_real    = nz.denormalize_y(ys.detach().cpu())
+
+        for pred_val, y_val in zip(preds_real.tolist(), ys_real.tolist()):
             err = pred_val - y_val
             pct = (err / y_val * 100) if y_val != 0 else 0.0
             results.append({
