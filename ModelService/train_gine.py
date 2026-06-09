@@ -274,7 +274,19 @@ def train(args):
     model_dir = os.path.dirname(model_save)
     excel_path = os.path.join(model_dir, 'test_predictions.xlsx')
     trainAndEval.evaluate_and_save_results(
-        model, test_loader, excel_path, device,20000
+        model, test_loader, excel_path, device, 20000,
+        hyperparams={
+            'batch_size': batch_size,
+            'num_epochs': num_epochs,
+            'learning_rate': learning_rate,
+            'weight_decay': weight_decay,
+            'hidden_dim': hidden_dim,
+            'num_layers': num_layers,
+            'patience': patience,
+            'validate_every': validate_every,
+            'val_batch_size': val_batch_size,
+            'seed': seed,
+        }
     )
     return model
 
