@@ -1,14 +1,14 @@
 {
-  "branch_length_mean": 400.6637878417969,
-  "branch_length_std": 245.75257873535156,
-  "price_mean": 1.198748230934143,
-  "price_std": 1.6058470010757446,
-  "wet_cost_mean": 3.5499022006988525,
-  "wet_cost_std": 5.884202480316162,
-  "total_cost_mean": 2257.7763789825412,
-  "total_cost_std": 164.9681324249555,
-  "total_length_mean": 15159.539211569247,
-  "total_length_std": 1521.6098670578099,
-  "total_weight_mean": 1813.4555956638083,
-  "total_weight_std": 159.15463845417565
+  "branch_length_mean": 400.87872314453125,
+  "branch_length_std": 246.19821166992188,
+  "price_mean": 1.2241218090057373,
+  "price_std": 1.6280441284179688,
+  "wet_cost_mean": 3.546081066131592,
+  "wet_cost_std": 5.9478349685668945,
+  "total_cost_mean": 2352.3795725886075,
+  "total_cost_std": 185.18103094334685,
+  "total_length_mean": 15564.985479512236,
+  "total_length_std": 1770.5253816384459,
+  "total_weight_mean": 1841.2025241753918,
+  "total_weight_std": 181.9801640555031
 }

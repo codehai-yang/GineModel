@@ -90,7 +90,7 @@ def compute_stats(file_list, indices):
 def main():
     # 配置路径
     data_dir = r'F:\office\pythonProjects\GINEModel\Samples'
-    output_path = os.path.join(os.path.dirname(config.MODEL_SAVE), 'normalization_params2.json')
+    output_path = os.path.join(r'F:\office\pythonProjects\GINEModel\Pt', 'normalization_params2.json')
 
     print("=" * 50)
     print("开始计算全局归一化参数（全量训练集）")

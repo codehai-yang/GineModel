@@ -127,6 +127,45 @@ def read_sample(f):
     length, = struct.unpack('>f', f.read(4))     #总长度，暂时不用
     return  edge_index,edge_attr, x, cost
 
+def read_sample_full(file_list, file_idx, sample_idx):
+    """
+    读取完整样本数据，返回全部三个标签（总成本、总长度、总重量）。
+
+    参数：
+        file_list:   数据文件路径列表
+        file_idx:    文件编号
+        sample_idx:  文件内样本编号
+
+    返回：
+        edge_index, edge_attr, x, total_cost, total_length, total_weight
+    """
+    filepath = file_list[file_idx]
+
+    with open(filepath, 'rb') as f:
+        offset = sample_idx * config.SAMPLE_BYTES
+        f.seek(offset)
+
+        edge_index = np.frombuffer(
+            f.read(config.EDGE_INDEX_BYTES),
+            dtype='>i4'
+        ).reshape(2, config.NUM_BRANCHES).astype('<i4')
+
+        edge_attr = np.frombuffer(
+            f.read(config.EDGE_ATTR_BYTES),
+            dtype='>f4'
+        ).reshape(config.NUM_BRANCHES, config.EDGE_FEAT_DIM).astype('<f4')
+
+        x = np.frombuffer(
+            f.read(config.X_BYTES),
+            dtype='>f4'
+        ).reshape(config.NUM_NODES, config.NODE_FEAT_DIM).astype('<f4')
+
+        # 读取三个标签：总成本、总重量、总长度
+        total_cost, = struct.unpack('>f', f.read(4))
+        total_weight, = struct.unpack('>f', f.read(4))
+        total_length, = struct.unpack('>f', f.read(4))
+
+        return edge_index, edge_attr, x, total_cost, total_length, total_weight
 
 def read_sample_by_index(file_list, file_idx, sample_idx):
     """
