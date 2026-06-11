@@ -5,21 +5,22 @@ import GlobalConfig as config
 
 class CostModelV2(nn.Module):
     """
-    实验版本：使用175×176矩阵作为节点特征
-    前175列：该节点到其他所有节点的回路平均单价
-    第176列：该节点所有回路的湿区成本总和
+    使用 N×200 矩阵作为节点特征（固定 200 维，不够补 0）。
+    前 175 列：该节点到其他所有节点的回路平均单价
+    第 175 列（0 索引）：该节点所有回路的湿区成本总和
+    第 176~199 列：填充 0（为后续扩展预留）
     """
 
     def __init__(
             self,
-            node_feat_dim = config.NODE_FEAT_DIM,    # 节点特征维度：175个单价 + 1个湿区成本
+            node_feat_dim = config.NODE_FEAT_DIM,    # 节点特征维度：200维（175个单价+1个湿区成本+24个填充0）
             edge_feat_dim = config.EDGE_FEAT_DIM,      # 边特征维度：通断(3维) + 分支长度(1维)
             hidden_dim    = config.HIDDEN_DIM,     # 隐藏层维度
             num_layers    = config.NUM_LAYERS       # GINE层数
     ):
         super(CostModelV2, self).__init__()
 
-        # 输入投影层：176维节点特征降维到hidden_dim
+        # 输入投影层：200维节点特征降维到hidden_dim
         self.input_proj = nn.Linear(node_feat_dim, hidden_dim)
 
         # self.edge_bn = nn.BatchNorm1d(1)

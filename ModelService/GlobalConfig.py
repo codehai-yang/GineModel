@@ -8,22 +8,20 @@ SD_ID_AI_DIR = 'SD_ID_AI'
 DATA_OUTPUT_DIR = os.environ.get('IWORK_DATA_OUT', '').rstrip('/')
 
 
-# 每个样本各字段的维度
-NUM_BRANCHES   = 211    # 分支数量（边数）
-NUM_NODES      = 175    # 分支点数量（节点数）
+# 每个样本各字段的维度（基础维度，实际样本 N/E 可变）
 EDGE_FEAT_DIM  = 4      # 边特征维度：通断(3维) + 分支长度(1维)
-NODE_FEAT_DIM  = 176    #分支点特征维度
+NODE_FEAT_DIM  = 200    # 分支点特征维度（填充到 200 维，不够补 0）
+Y_FEAT_COUNT   = 3      # 标签数量：总成本、总长度、总重量
 
-# 每个样本的字节数（用于seek定位）
-# edge_attr:  211 × 4 × 4字节(float32) = 3376字节
-# edge_index: 2 × 211 × 4字节(int32)   = 1688字节
-# x:          175 × 176 × 4字节(float32) = 123200字节
-# y:          3 × 4字节(float32)        = 12字节  总长度，总成本，总重量
-EDGE_ATTR_BYTES  = NUM_BRANCHES * EDGE_FEAT_DIM * 4
-EDGE_INDEX_BYTES = 2 * NUM_BRANCHES * 4
-X_BYTES          = NUM_NODES * NODE_FEAT_DIM  * 4
-Y_BYTES          = 4 * 3
-SAMPLE_BYTES     = EDGE_ATTR_BYTES + EDGE_INDEX_BYTES + X_BYTES + Y_BYTES       #一个样本的字节数 128276字节
+# 样本头部信息
+HEADER_ITEMS    = 2         # N 和 E 两个整数
+HEADER_BYTES    = HEADER_ITEMS * 4   # 8 字节
+
+# 每个样本的字节数动态计算（N 和 E 可变）
+# 公式：HEADER_BYTES + (E * 2 * 4 + E * EDGE_FEAT_DIM * 4 + N * NODE_FEAT_DIM * 4 + Y_FEAT_COUNT * 4)
+#     = 8 + (E * 6 + N * 200 + 3) * 4
+#     = 8 + E * 24 + N * 800 + 12
+#     = 20 + E * 24 + N * 800
 
 # 训练超参数
 BATCH_SIZE     = 128      # 每个batch的样本数

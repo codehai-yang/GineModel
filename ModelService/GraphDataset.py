@@ -13,8 +13,8 @@ class GraphDataset(Dataset):
     def __init__(self, file_list, indices):
         """
         参数：
-            file_list : 数据文件路径列表（来自 loadSample.build_global_indices）
-            indices   : [(file_idx, sample_idx), ...] 样本索引列表
+            file_list : 数据文件路径列表（来自 loadSample.build_sample_index）
+            indices   : [(file_idx, sample_idx, offset, N, E), ...] 样本索引列表
         """
         super().__init__()
         self.file_list = file_list
@@ -28,17 +28,17 @@ class GraphDataset(Dataset):
         被 DataLoader worker 调用，返回单个图的 Data 对象。
         归一化在这里做，完全在 CPU worker 里并行执行。
         """
-        file_idx, sample_idx = self.sample_indices[idx]
+        file_idx, sample_idx, offset, N, E = self.sample_indices[idx]
 
-        # 读取原始数据
-        edge_index, edge_attr, x, y = loadSample.read_sample_by_index(
-            self.file_list, file_idx, sample_idx
+        # 读取原始数据（按偏移量读取，N/E 可变）
+        edge_index, edge_attr, x, y = loadSample.read_sample(
+            self.file_list, file_idx, offset, N, E
         )
 
         # 归一化（在 worker 进程里并行，不占主进程/GPU时间）
         edge_attr, x, y = nz.normalize_all(edge_attr, x, y)
 
-        # 转为 tensor
+        # 转为 tensor（维度可变）
         edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
             edge_index, edge_attr, x, y
         )
@@ -48,8 +48,8 @@ class GraphDataset(Dataset):
             y_t = y_t.unsqueeze(0)
 
         return Data(
-            x          = x_t,           # [175, 176]
-            edge_index = edge_index_t,  # [2, 211]
-            edge_attr  = edge_attr_t,   # [211, 4]
+            x          = x_t,           # [N, 200]
+            edge_index = edge_index_t,  # [2, E]
+            edge_attr  = edge_attr_t,   # [E, 4]
             y          = y_t            # [1]
         )

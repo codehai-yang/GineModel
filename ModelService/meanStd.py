@@ -22,11 +22,11 @@ def compute_stats(file_list, indices):
     all_total_length = []
     all_total_weight = []
 
-    for idx, (file_idx, sample_idx) in enumerate(indices):
+    for idx, (file_idx, sample_idx, offset, N, E) in enumerate(indices):
         try:
             # 读取完整样本，包含三个标签
             edge_index, edge_attr, x, total_cost, total_length, total_weight = \
-                loadSample.read_sample_full(file_list, file_idx, sample_idx)
+                loadSample.read_sample_full(file_list, file_idx, offset, N, E)
 
             # 1. 分支长度 (edge_attr 第4列)
             all_branch_lengths.append(edge_attr[:, 3])
@@ -100,7 +100,7 @@ def main():
     if not os.path.exists(data_dir):
         raise FileNotFoundError(f"数据目录不存在: {data_dir}")
 
-    all_indices, file_list = loadSample.build_global_indices(data_dir)
+    all_indices, file_list = loadSample.build_sample_index(data_dir)
 
     # 2. 划分数据集（只取训练集索引）
     print("\n划分数据集以获取训练集索引...")

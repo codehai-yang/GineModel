@@ -158,7 +158,7 @@ def train(args):
 
     # ===== 第一步：建立全局索引并划分数据集 =====
     print('\n建立全局索引...')
-    all_indices, file_list = loadSample.build_global_indices(data_dir)
+    all_indices, file_list = loadSample.build_sample_index(data_dir)
 
     print('\n划分数据集...')
     train_indices, val_indices, test_indices = loadSample.split_indices(all_indices)

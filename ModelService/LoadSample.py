@@ -9,25 +9,45 @@ import glob
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'使用设备: {device}')
 
-def build_global_indices(data_dir):
+
+def calc_sample_bytes(N, E):
     """
-    扫描指定目录下所有二进制样本文件，建立全局索引。
+    根据节点数 N 和边数 E 计算样本的字节大小。
+
+    样本结构：
+        N(int32) + E(int32)                              = 8 字节（头部）
+        edge_index: E * 2 个 int32                        = E * 8 字节
+        edge_attr:  E * 4 个 float32                      = E * 16 字节
+        x:          N * 200 个 float32（固定200维）         = N * 800 字节
+        y:          3 个 float32                          = 12 字节
+        ─────────────────────────────────────────────────────────
+        总计: 8 + E*24 + N*800 + 12 = 20 + E*24 + N*800
+    """
+    return config.HEADER_BYTES + \
+           (E * 2 * 4) + \
+           (E * config.EDGE_FEAT_DIM * 4) + \
+           (N * config.NODE_FEAT_DIM * 4) + \
+           (config.Y_FEAT_COUNT * 4)
+
+
+def build_sample_index(data_dir):
+    """
+    扫描 data_dir 下所有二进制样本文件，逐样本读取头部（N, E），
+    建立每个样本在文件中的起始偏移量索引。
 
     参数：
-        data_dir: 存放样本文件的目录路径，比如 './data/samples'
+        data_dir: 样本文件目录
 
     返回：
-        all_indices: 全局索引列表，每个元素是 (file_idx, sample_idx)
-        file_list:   扫描到的文件路径列表，供后续读取使用
+        all_indices: [(file_idx, sample_idx, offset, N, E), ...]
+        file_list:   文件路径列表
     """
-    # 检查目录是否存在
     if not os.path.exists(data_dir):
         raise FileNotFoundError(f'目录不存在: {data_dir}')
 
-    # 匹配目录下所有文件，排除子目录
     file_list = sorted([
         f for f in glob.glob(os.path.join(data_dir, '*'))
-        if os.path.isfile(f)    # 只保留文件
+        if os.path.isfile(f)
     ])
 
     if len(file_list) == 0:
@@ -38,56 +58,63 @@ def build_global_indices(data_dir):
     all_indices = []
 
     for file_idx, filepath in enumerate(file_list):
-        # 通过文件大小计算样本数量
-        file_size   = os.path.getsize(filepath)
-        num_samples = file_size // config.SAMPLE_BYTES
+        file_size = os.path.getsize(filepath)
+        sample_count = 0
 
-        # 验证文件大小是否正确
-        if file_size % config.SAMPLE_BYTES != 0:
-            raise ValueError(
-                f'文件 {filepath} 大小异常: '
-                f'{file_size} 字节不能被 {config.SAMPLE_BYTES} 整除'
-            )
+        with open(filepath, 'rb') as f:
+            offset = 0
 
-        # 把这个文件的所有样本索引加入全局列表
-        for sample_idx in range(num_samples):
-            all_indices.append((file_idx, sample_idx))
+            while offset + config.HEADER_BYTES <= file_size:
+                # 读取头部 N、E
+                header = f.read(config.HEADER_BYTES)
+                if len(header) < config.HEADER_BYTES:
+                    break
 
-        print(f'  {os.path.basename(filepath)}: {num_samples} 个样本')
+                N, E = struct.unpack('>ii', header)
+
+                # 计算这个样本的总字节数
+                sample_bytes = calc_sample_bytes(N, E)
+
+                # 过滤不合理的样本（防止死循环）
+                if N <= 0 or E <= 0 or offset + sample_bytes > file_size:
+                    break
+
+                all_indices.append((file_idx, sample_count, offset, N, E))
+                sample_count += 1
+
+                # 跳到下一个样本的起始位置
+                offset += sample_bytes
+                f.seek(offset)
+
+        print(f'  {os.path.basename(filepath)}: {sample_count} 个样本')
 
     print(f'总样本数: {len(all_indices)}')
-
-    # 同时返回file_list，后续read_sample_by_index需要用它找文件路径
     return all_indices, file_list
+
 
 def split_indices(all_indices, train_ratio=0.7, val_ratio=0.15, seed=config.RANDOM_SEED):
     """
     将全局索引划分为训练集、验证集、测试集。
-    划分方式：只操作索引，不读取任何数据，内存占用极小。
+    只操作索引，不读取任何数据。
 
     参数：
-        all_indices:  全局索引列表
-        train_ratio:  训练集比例，默认70%
-        val_ratio:    验证集比例，默认15%
-        seed:         随机种子，保证每次划分结果一致
+        all_indices:  [(file_idx, sample_idx, offset, N, E), ...]
+        train_ratio:  训练集比例，默认 70%
+        val_ratio:    验证集比例，默认 15%
+        seed:         随机种子
 
     返回：
         train_indices, val_indices, test_indices
     """
-    # 固定随机种子，保证每次运行划分结果相同
     random.seed(seed)
 
-    # 打乱索引顺序，确保随机分配
     indices = all_indices.copy()
     random.shuffle(indices)
 
-    # 计算各集合的大小
     total      = len(indices)
     train_size = int(total * train_ratio)
     val_size   = int(total * val_ratio)
-    # 测试集取剩余的所有样本
 
-    # 按比例切分
     train_indices = indices[:train_size]
     val_indices   = indices[train_size:train_size + val_size]
     test_indices  = indices[train_size + val_size:]
@@ -98,156 +125,96 @@ def split_indices(all_indices, train_ratio=0.7, val_ratio=0.15, seed=config.RAND
 
     return train_indices, val_indices, test_indices
 
-def read_sample(f):
-    edge_index = np.frombuffer(
-        f.read(config.EDGE_INDEX_BYTES),   # 读取1688字节
-        dtype='>i4'               # 按int32解析，节点索引是整数
-    ).reshape(2,  config.NUM_BRANCHES)      # 重塑为 [2, 211]
-    edge_index = edge_index.astype('<i4')
-    # 读取 edge_attr [211, 4]，float32类型
-    # 211条分支 × 4个特征 × 4字节 = 3376字节
-    edge_attr = np.frombuffer(
-        f.read(config.EDGE_ATTR_BYTES),    # 读取3376字节
-        dtype='>f4'             # 按float32解析
-    ).reshape(config.NUM_BRANCHES,config.EDGE_FEAT_DIM)  # 重塑为 [211, 4]
-    edge_attr = edge_attr.astype('<f4')
 
-    # 读取 x [175, 1]，float32类型
-    # 175个节点 × 1个特征 × 4字节 = 700字节
-    x = np.frombuffer(
-        f.read(config.X_BYTES),            # 读取700字节
-        dtype='>f4'             # 按float32解析
-    ).reshape(config.NUM_NODES,config.NODE_FEAT_DIM)  # 重塑为 [175, 176]
-    x = x.astype('<f4')
-
-    # 读取 y，单个float32
-    # 12字节，总成本，总长度，总重量
-    cost, = struct.unpack('>f', f.read(4))       #总成本训练用
-    weight, = struct.unpack('>f', f.read(4))     #总重量，暂时不用
-    length, = struct.unpack('>f', f.read(4))     #总长度，暂时不用
-    return  edge_index,edge_attr, x, cost
-
-def read_sample_full(file_list, file_idx, sample_idx):
+def read_sample_from_file(filepath, offset, N, E):
     """
-    读取完整样本数据，返回全部三个标签（总成本、总长度、总重量）。
+    从文件中按偏移量读取一个样本，节点特征 x 固定填充到 200 维。
+    不够 200 维的部分补 0。
 
     参数：
-        file_list:   数据文件路径列表
-        file_idx:    文件编号
-        sample_idx:  文件内样本编号
+        filepath: 文件路径
+        offset:   样本在文件中的起始字节偏移（已包含头部 8 字节）
+        N:        节点数
+        E:        边数（分支数）
+
+    返回：
+        edge_index: numpy [2, E]
+        edge_attr:  numpy [E, 4]
+        x:          numpy [N, 200]
+        total_cost, total_weight, total_length: float
+    """
+    with open(filepath, 'rb') as f:
+        f.seek(offset)
+
+        # 跳过头部（build_sample_index 已经读过）
+        f.read(config.HEADER_BYTES)
+
+        # 读取 edge_index [2, E]
+        edge_index_bytes = E * 2 * 4
+        edge_index = np.frombuffer(
+            f.read(edge_index_bytes), dtype='>i4'
+        ).reshape(2, E).astype('<i4')
+
+        # 读取 edge_attr [E, 4]
+        edge_attr_bytes = E * config.EDGE_FEAT_DIM * 4
+        edge_attr = np.frombuffer(
+            f.read(edge_attr_bytes), dtype='>f4'
+        ).reshape(E, config.EDGE_FEAT_DIM).astype('<f4')
+
+        # 读取 x [N, 200]
+        x_bytes = N * config.NODE_FEAT_DIM * 4
+        x = np.frombuffer(
+            f.read(x_bytes), dtype='>f4'
+        ).reshape(N, config.NODE_FEAT_DIM).astype('<f4')
+
+        # 读取 y: 总成本、总重量、总长度
+        total_cost,   = struct.unpack('>f', f.read(4))
+        total_weight, = struct.unpack('>f', f.read(4))
+        total_length, = struct.unpack('>f', f.read(4))
+
+        return edge_index, edge_attr, x, total_cost, total_weight, total_length
+
+
+def read_sample(file_list, file_idx, offset, N, E):
+    """
+    读取样本（用于训练），只返回训练用的 cost 标签。
+
+    返回：
+        edge_index, edge_attr, x, cost
+    """
+    filepath = file_list[file_idx]
+    edge_index, edge_attr, x, cost, _, _ = read_sample_from_file(filepath, offset, N, E)
+    return edge_index, edge_attr, x, cost
+
+
+def read_sample_full(file_list, file_idx, offset, N, E):
+    """
+    读取完整样本（用于统计），返回全部三个标签。
 
     返回：
         edge_index, edge_attr, x, total_cost, total_length, total_weight
     """
     filepath = file_list[file_idx]
+    return read_sample_from_file(filepath, offset, N, E)
 
-    with open(filepath, 'rb') as f:
-        offset = sample_idx * config.SAMPLE_BYTES
-        f.seek(offset)
 
-        edge_index = np.frombuffer(
-            f.read(config.EDGE_INDEX_BYTES),
-            dtype='>i4'
-        ).reshape(2, config.NUM_BRANCHES).astype('<i4')
-
-        edge_attr = np.frombuffer(
-            f.read(config.EDGE_ATTR_BYTES),
-            dtype='>f4'
-        ).reshape(config.NUM_BRANCHES, config.EDGE_FEAT_DIM).astype('<f4')
-
-        x = np.frombuffer(
-            f.read(config.X_BYTES),
-            dtype='>f4'
-        ).reshape(config.NUM_NODES, config.NODE_FEAT_DIM).astype('<f4')
-
-        # 读取三个标签：总成本、总重量、总长度
-        total_cost, = struct.unpack('>f', f.read(4))
-        total_weight, = struct.unpack('>f', f.read(4))
-        total_length, = struct.unpack('>f', f.read(4))
-
-        return edge_index, edge_attr, x, total_cost, total_length, total_weight
-
-def read_sample_by_index(file_list, file_idx, sample_idx):
+def sample_to_tensor(edge_index, edge_attr, x, y):
     """
-    根据全局索引读取指定样本。
-    使用seek直接跳到样本位置，不需要从头读取。
+    将 numpy 数组转换为 PyTorch tensor。
 
     参数：
-        file_list:   数据文件路径列表
-        file_idx:    文件编号
-        sample_idx:  文件内样本编号
-
-    返回：
-        edge_attr, edge_index, x, y（同read_sample）
-    """
-    filepath = file_list[file_idx]          # 找到对应文件路径
-
-    with open(filepath, 'rb') as f:
-        # 计算这个样本在文件中的字节偏移量
-        # 第0个样本从字节0开始，第1个从SAMPLE_BYTES开始，以此类推
-        offset = sample_idx * config.SAMPLE_BYTES
-
-        f.seek(offset)                      # 直接跳到该样本的起始位置
-        return read_sample(f)               # 从当前位置读取一个样本
-
-
-def sample_to_tensor(edge_index,edge_attr,  x, y):
-    """
-    将numpy数组转换为PyTorch tensor，供模型使用。
-
-    参数：
-        edge_index: numpy [2, 211]
-        edge_attr:  numpy [211, 4]
-        x:          numpy [175, 176]
+        edge_index: numpy [2, E]   (E 可变)
+        edge_attr:  numpy [E, 4]
+        x:          numpy [N, 200] (N 可变, 200 固定)
         y:          float
 
     返回：
-        对应的torch tensor，数据类型正确
+        对应的 torch tensor
     """
-    # edge_index转long tensor，PyG要求边索引必须是long(int64)类型
-    edge_index_t = torch.tensor(edge_index,dtype=torch.long)
-    # edge_attr转float tensor，模型计算需要float类型
-    edge_attr_t  = torch.tensor(edge_attr,dtype=torch.float)
+    edge_index_t = torch.tensor(edge_index, dtype=torch.long)
+    edge_attr_t  = torch.tensor(edge_attr,  dtype=torch.float)
+    x_t          = torch.tensor(x,          dtype=torch.float)
+    y_t          = torch.tensor([y],        dtype=torch.float)
+    return edge_index_t, edge_attr_t, x_t, y_t
 
 
-
-    # x转float tensor
-    x_t          = torch.tensor(x,dtype=torch.float)
-
-    # y转float tensor，包在列表里变成[1]维tensor
-    y_t          = torch.tensor([y],dtype=torch.float)
-
-    return edge_index_t,edge_attr_t,  x_t, y_t
-
-def normalize_node_features(price_matrix, wet_costs,
-                            price_min, price_max,
-                            wet_min,   wet_max):
-    """
-    对175×176节点特征矩阵做归一化。
-    0值保持0，只对非0值归一化。
-
-    参数：
-        price_matrix: [175, 175] 回路单价矩阵
-        wet_costs:    [175, 1]   湿区成本列
-        price_min/max: 回路单价的归一化范围
-        wet_min/max:   湿区成本的归一化范围
-    """
-    # 复制一份，不修改原始数据
-    price_norm = price_matrix.copy()
-    wet_norm   = wet_costs.copy()
-
-    # 只对非0位置归一化，0保持0
-    mask_price = price_matrix != 0          # 找出非0位置
-    price_norm[mask_price] = (
-                                     price_matrix[mask_price] - price_min
-                             ) / (price_max - price_min)
-
-    mask_wet = wet_costs != 0
-    wet_norm[mask_wet] = (
-                                 wet_costs[mask_wet] - wet_min
-                         ) / (wet_max - wet_min)
-
-    # 拼接成[175, 176]
-    x = np.concatenate([price_norm, wet_norm], axis=1)
-
-    return x
