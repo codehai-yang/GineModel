@@ -5,7 +5,7 @@ import Normalize as nz
 
 class GraphDataset(Dataset):
     """
-    将 (file_idx, sample_idx) 索引列表封装为 PyG Dataset。
+    将 (file_idx, sample_idx, offset, N, E) 索引列表封装为 PyG Dataset。
     DataLoader 会用多个 worker 进程并行调用 get()，
     彻底解决 CPU 串行读取/归一化拖慢 GPU 的问题。
     """
@@ -36,7 +36,8 @@ class GraphDataset(Dataset):
         )
 
         # 归一化（在 worker 进程里并行，不占主进程/GPU时间）
-        edge_attr, x, y = nz.normalize_all(edge_attr, x, y)
+        # 传入 N：标准化回路单价前 N 列，湿区第 N 列
+        edge_attr, x, y = nz.normalize_all(edge_attr, x, y, N)
 
         # 转为 tensor（维度可变）
         edge_index_t, edge_attr_t, x_t, y_t = loadSample.sample_to_tensor(
