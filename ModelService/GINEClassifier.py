@@ -13,7 +13,7 @@ class CostModelV2(nn.Module):
 
     def __init__(
             self,
-            node_feat_dim = config.NODE_FEAT_DIM,    # 节点特征维度：200维（175个单价+1个湿区成本+24个填充0）
+            node_feat_dim = config.NODE_FEAT_DIM,    # 节点特征维度：200维
             edge_feat_dim = config.EDGE_FEAT_DIM,      # 边特征维度：通断(3维) + 分支长度(1维)
             hidden_dim    = config.HIDDEN_DIM,     # 隐藏层维度
             num_layers    = config.NUM_LAYERS       # GINE层数
