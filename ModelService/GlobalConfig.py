@@ -53,7 +53,8 @@ if DATA_OUTPUT_DIR:
     MODEL_SAVE = os.path.join(DATA_OUTPUT_DIR, 'pt', 'best_model.pt')
     LOG_DIR = os.path.join(DATA_OUTPUT_DIR, 'logs')
 else:
-    MODEL_SAVE = '/app/pt/best_model.pt'
+    # MODEL_SAVE = '/app/pt/best_model.pt'
+    MODEL_SAVE = r'F:\office\pythonProjects\GINEModel\Pt\best_model.pt'
     LOG_DIR = '/app/logs'
 
 os.makedirs(os.path.dirname(MODEL_SAVE), exist_ok=True)

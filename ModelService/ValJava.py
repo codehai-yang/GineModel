@@ -79,14 +79,19 @@ def predict_single(model, filepath):
             f.read(x_bytes), dtype='>f4'
         ).reshape(N, config.NODE_FEAT_DIM).copy().astype('<f4')
 
+        print(f"x 形状: {x.shape}")
+        print(f"x 第 0 行非零列索引: {np.where(x[0] != 0)[0]}")
+        print(f"x 第 6 行 185-199 列: {x[6, 189:200]}")
         # 5. 读取 y: 总成本、总重量、总长度（从后 12 字节读取原始值）
-        y_bytes = f.read(config.Y_FEAT_COUNT * 4)
-        total_cost, total_weight, total_length = struct.unpack('>fff', y_bytes)
+        # y_bytes = f.read(config.Y_FEAT_COUNT * 4)
+        # total_cost, total_weight, total_length = struct.unpack('>fff', y_bytes)
 
     # 5. 标准化（与训练时一致）
     # 传入 N：回路单价前 N 列，湿区第 N 列
     edge_attr, x, _ = nz.normalize_all(edge_attr, x, 0.0, N)  # y 占位，推理时不需要
 
+    print("标准化后的 x 矩阵 (前 10 行):")
+    print(x[:10, :])
     # 6. 转 tensor
     edge_index_t = torch.tensor(edge_index, dtype=torch.long).to(device)
     edge_attr_t  = torch.tensor(edge_attr,  dtype=torch.float).to(device)
@@ -98,30 +103,24 @@ def predict_single(model, filepath):
     # 7. 反标准化回原始成本
     pred_real = nz.denormalize_y(pred_norm.cpu().item())
 
-    return pred_real, total_cost, total_weight, total_length
+    return pred_real
 
 
 # 使用
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='GINE Model Inference')
-    parser.add_argument('--data_dir', type=str, default=r'F:\office\pythonProjects\GINEModel\Samples', help='样本文件所在目录')
-    parser.add_argument('--sample', type=str, default='Samples_20260611_200506_159', help='样本文件名')
+    parser.add_argument('--data_dir', type=str, default=r'F:\office\pythonProjects\GINEModel\javaTest', help='样本文件所在目录')
+    parser.add_argument('--sample', type=str, default='predict_input.bin', help='样本文件名')
     args = parser.parse_args()
 
     # 优先使用命令行传入的 data_dir，否则使用 config.SAMPLE_SAVE
     data_dir = args.data_dir if args.data_dir else config.SAMPLE_SAVE
     test_path = os.path.join(data_dir, args.sample)
-    pred_cost, true_cost, true_weight, true_length = predict_single(model, test_path)
+    pred_cost = predict_single(model, test_path)
 
-    err = pred_cost - true_cost
-    pct = (err / true_cost * 100) if true_cost != 0 else 0.0
 
     print('=' * 60)
     print(f'预测成本: {pred_cost:.4f}')
-    print(f'真实成本: {true_cost:.4f}')
-    print(f'误差:     {err:.4f}  ({pct:+.2f}%)')
-    print(f'真实总长度: {true_length:.4f}')
-    print(f'真实总重量: {true_weight:.4f}')
     print('=' * 60)
 
     import torch
